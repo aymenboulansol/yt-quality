@@ -18,7 +18,6 @@ jobs:
 
       - name: Install System Dependencies
         run: |
-          # تثبيت أدوات التوقيع وفك الضغط المطلوبة لـ Theos و Azule مبكراً
           brew install ldid dpkg
 
       - name: Set up Theos and SDK
@@ -53,7 +52,10 @@ jobs:
       - name: Download and Inject
         run: |
           curl -L "${{ github.event.inputs.ipa_url }}" -o YouTube.ipa
-          azule -i YouTube.ipa -f YourTweak.dylib -o output/ -e
+          # إنشاء مجلد الإخراج أولاً لتجنب خطأ Azule
+          mkdir -p output
+          # ترتيب الأوامر بشكل صحيح: الإدخال -> الإخراج -> الأداة المراد حقنها
+          azule -i YouTube.ipa -o output -f YourTweak.dylib
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
