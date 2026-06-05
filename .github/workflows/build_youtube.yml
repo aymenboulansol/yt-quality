@@ -4,15 +4,15 @@ on:
   workflow_dispatch:
     inputs:
       ipa_url:
-        description: 'Direct URL to YouTube IPA'
+        description: 'Direct URL to a VALID YouTube IPA'
         required: true
-        default: 'https://files.catbox.moe/r6c7qd.ipa'
+        default: 'https://github.com/theduckotech/YouTube-Decrypted/releases/download/v19.11.3/YouTube_19.11.3_Decrypted.ipa'
 
 jobs:
   build:
     runs-on: macos-latest
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Install Dependencies
@@ -34,27 +34,16 @@ jobs:
           cd BuildTweak
           export THEOS=~/theos
           make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless ARCHS=arm64
-          # هذا السطر يبحث في جميع المجلدات الفرعية عن ملف dylib وينقله للمجلد الرئيسي
+          # البحث عن ملف dylib في أي مكان ونسخه للمسار المطلوب
           find . -name "*.dylib" -exec cp {} ../YourTweak.dylib \;
-          cd ..
 
-      - name: Install Azule and Inject
+      - name: Inject with Azule
         run: |
           git clone https://github.com/Al4ise/Azule ~/Azule
           sudo ln -sf ~/Azule/azule /usr/local/bin/azule
-          
-          # تحميل الملف
           curl -L -f "${{ github.event.inputs.ipa_url }}" -o YouTube.ipa
-          
-          # التحقق من وجود الملف قبل الحقن
-          if [ -f "YourTweak.dylib" ]; then
-            echo "Tweak found, proceeding to inject..."
-            mkdir -p output
-            azule -i YouTube.ipa -o output -f YourTweak.dylib
-          else
-            echo "Error: YourTweak.dylib was not found after compilation!"
-            exit 1
-          fi
+          mkdir -p output
+          azule -i YouTube.ipa -o output -f YourTweak.dylib
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
