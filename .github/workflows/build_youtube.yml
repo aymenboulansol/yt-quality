@@ -18,7 +18,6 @@ jobs:
 
       - name: Set up Theos Environment
         run: |
-          # تحميل Theos مباشرة لتجاوز خطأ الـ API
           git clone --recursive https://github.com/theos/theos.git ~/theos
           echo "THEOS=~/theos" >> $GITHUB_ENV
           
