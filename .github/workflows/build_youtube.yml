@@ -1,0 +1,63 @@
+name: Build Tweak and Inject into YouTube
+
+on:
+  workflow_dispatch:
+    inputs:
+      ipa_url:
+        description: 'Direct URL to YouTube IPA'
+        required: true
+        default: 'https://example.com/youtube.ipa'
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Your Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Theos Environment
+        run: |
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          echo "THEOS=~/theos" >> $GITHUB_ENV
+          
+          mkdir -p ~/theos/sdks
+          curl -LO https://github.com/theos/sdks/raw/master/iPhoneOS16.5.sdk.tar.xz
+          tar -xf iPhoneOS16.5.sdk.tar.xz -C ~/theos/sdks/
+          rm iPhoneOS16.5.sdk.tar.xz
+
+      - name: Clone and Build YouChooseQuality Tweak
+        run: |
+          git clone https://github.com/PoomSmart/YouChooseQuality.git BuildTweak
+          cd BuildTweak
+          make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless ARCHS=arm64
+          find .theos/obj/ -name "*.dylib" -exec cp {} ../YourTweak.dylib \;
+          if [ -d "layout/Library/Application Support" ]; then
+            mkdir -p ../TweakResources
+            cp -r "layout/Library/Application Support/"* ../TweakResources/
+          fi
+          cd ..
+
+      - name: Install Injection Tools (Azule)
+        run: |
+          brew install dpkg ldid
+          git clone https://github.com/Al4ise/Azule ~/Azule
+          sudo ln -sf ~/Azule/azule /usr/local/bin/azule
+
+      - name: Download YouTube IPA
+        run: |
+          curl -L "${{ github.event.inputs.ipa_url }}" -o YouTube.ipa
+
+      - name: Inject Tweak into YouTube
+        run: |
+          if [ -d "TweakResources" ]; then
+            azule -i YouTube.ipa -f YourTweak.dylib -r TweakResources -o output/ -e
+          else
+            azule -i YouTube.ipa -f YourTweak.dylib -o output/ -e
+          fi
+
+      - name: Upload Finished IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: YouTube-YouChooseQuality
+          path: output/*.ipa
