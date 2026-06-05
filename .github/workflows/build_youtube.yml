@@ -16,13 +16,16 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Install System Dependencies
+        run: |
+          # تثبيت أدوات التوقيع وفك الضغط المطلوبة لـ Theos و Azule مبكراً
+          brew install ldid dpkg
+
       - name: Set up Theos and SDK
         run: |
-          # 1. تحميل بيئة Theos بالكامل
           git clone --recursive https://github.com/theos/theos.git ~/theos
           echo "THEOS=~/theos" >> $GITHUB_ENV
           
-          # 2. تحميل الـ SDK الصافي وتثبيته
           mkdir -p ~/theos/sdks
           git clone --depth 1 https://github.com/theos/sdks.git /tmp/sdks
           cp -r /tmp/sdks/iPhoneOS16.5.sdk ~/theos/sdks/
@@ -30,7 +33,6 @@ jobs:
 
       - name: Install PoomSmart Headers (Direct Clone)
         run: |
-          # جلب مكتبات الهيدرات الناقصة مباشرة إلى المجلد الافتراضي للمترجم
           git clone --depth 1 https://github.com/PoomSmart/YouTubeHeader.git ~/theos/include/YouTubeHeader
           git clone --depth 1 https://github.com/PoomSmart/PSHeader.git ~/theos/include/PSHeader
 
@@ -45,7 +47,6 @@ jobs:
 
       - name: Install Azule
         run: |
-          brew install dpkg ldid
           git clone https://github.com/Al4ise/Azule ~/Azule
           sudo ln -sf ~/Azule/azule /usr/local/bin/azule
 
