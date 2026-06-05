@@ -24,13 +24,12 @@ jobs:
         run: |
           git clone --recursive https://github.com/theos/theos.git ~/theos
           echo "THEOS=~/theos" >> $GITHUB_ENV
-          
           mkdir -p ~/theos/sdks
           git clone --depth 1 https://github.com/theos/sdks.git /tmp/sdks
           cp -r /tmp/sdks/iPhoneOS16.5.sdk ~/theos/sdks/
           rm -rf /tmp/sdks
 
-      - name: Install PoomSmart Headers (Direct Clone)
+      - name: Install Headers
         run: |
           git clone --depth 1 https://github.com/PoomSmart/YouTubeHeader.git ~/theos/include/YouTubeHeader
           git clone --depth 1 https://github.com/PoomSmart/PSHeader.git ~/theos/include/PSHeader
@@ -41,7 +40,7 @@ jobs:
           cd BuildTweak
           export THEOS=~/theos
           make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless ARCHS=arm64
-          find .theos/obj/ -name "*.dylib" -exec cp {} ../YourTweak.dylib \;
+          cp .theos/obj/debug/arm64/YouChooseQuality.dylib ../YourTweak.dylib || cp .theos/obj/arm64/YouChooseQuality.dylib ../YourTweak.dylib
           cd ..
 
       - name: Install Azule
@@ -51,12 +50,11 @@ jobs:
 
       - name: Download and Inject
         run: |
-          curl -L "${{ github.event.inputs.ipa_url }}" -o YouTube.ipa
-          # إنشاء مجلد الإخراج أولاً لتجنب خطأ Azule
+          # محاولة تحميل الملف مع التحقق من صحته
+          curl -L -f "${{ github.event.inputs.ipa_url }}" -o YouTube.ipa
           mkdir -p output
-          # ترتيب الأوامر بشكل صحيح: الإدخال -> الإخراج -> الأداة المراد حقنها
           azule -i YouTube.ipa -o output -f YourTweak.dylib
-
+          
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
