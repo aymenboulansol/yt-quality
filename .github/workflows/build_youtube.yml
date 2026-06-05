@@ -6,7 +6,7 @@ on:
       ipa_url:
         description: 'Direct URL to YouTube IPA'
         required: true
-        default: 'https://github.com/theduckotech/YouTube-Decrypted/releases/download/v19.11.3/YouTube_19.11.3_Decrypted.ipa'
+        default: 'https://files.catbox.moe/r6c7qd.ipa'
 
 jobs:
   build:
@@ -15,21 +15,16 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install System Dependencies
-        run: |
-          brew install ldid dpkg
+      - name: Install Dependencies
+        run: brew install ldid dpkg
 
-      - name: Set up Theos and SDK
+      - name: Setup Theos and SDK
         run: |
           git clone --recursive https://github.com/theos/theos.git ~/theos
           echo "THEOS=~/theos" >> $GITHUB_ENV
           mkdir -p ~/theos/sdks
           git clone --depth 1 https://github.com/theos/sdks.git /tmp/sdks
           cp -r /tmp/sdks/iPhoneOS16.5.sdk ~/theos/sdks/
-          rm -rf /tmp/sdks
-
-      - name: Install Headers
-        run: |
           git clone --depth 1 https://github.com/PoomSmart/YouTubeHeader.git ~/theos/include/YouTubeHeader
           git clone --depth 1 https://github.com/PoomSmart/PSHeader.git ~/theos/include/PSHeader
 
@@ -39,20 +34,26 @@ jobs:
           cd BuildTweak
           export THEOS=~/theos
           make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless ARCHS=arm64
-          # التأكد من نسخ ملف dylib الناتج إلى مسار واضح
+          # البحث عن الملف الناتج في أي مسار فرعي
           find .theos/obj -name "*.dylib" -exec cp {} ../YourTweak.dylib \;
           cd ..
 
-      - name: Install Azule
+      - name: Install Azule and Inject
         run: |
           git clone https://github.com/Al4ise/Azule ~/Azule
           sudo ln -sf ~/Azule/azule /usr/local/bin/azule
-
-      - name: Download and Inject
-        run: |
-          curl -L "${{ github.event.inputs.ipa_url }}" -o YouTube.ipa
+          
+          # تحميل الملف مع التحقق من الرابط
+          curl -L -f "${{ github.event.inputs.ipa_url }}" -o YouTube.ipa
+          
+          # إنشاء مجلد المخرجات والتأكد من وجود ملف التعديل
           mkdir -p output
-          azule -i YouTube.ipa -o output -f YourTweak.dylib
+          if [ -f "YourTweak.dylib" ]; then
+            azule -i YouTube.ipa -o output -f YourTweak.dylib
+          else
+            echo "Error: YourTweak.dylib not found!"
+            exit 1
+          fi
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
