@@ -16,15 +16,23 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Theos and SDKs
+      - name: Set up Theos and SDK
         run: |
-          # 1. تحميل Theos مباشرة
           git clone --recursive https://github.com/theos/theos.git ~/theos
           echo "THEOS=~/theos" >> $GITHUB_ENV
           
-          # 2. تحميل مجلد الـ SDKs بالكامل لتجنب أخطاء فك الضغط والروابط المكسورة
-          rm -rf ~/theos/sdks
-          git clone https://github.com/theos/sdks.git ~/theos/sdks
+          mkdir -p ~/theos/sdks
+          git clone --depth 1 https://github.com/theos/sdks.git /tmp/sdks
+          cp -r /tmp/sdks/iPhoneOS16.5.sdk ~/theos/sdks/
+          rm -rf /tmp/sdks
+
+      - name: Install YouTube Headers
+        run: |
+          # تحميل ملفات الـ Headers المطلوبة للأداة لضمان نجاح الـ Build
+          git clone https://github.com/PoomSmart/YouTubeHeader.git /tmp/YouTubeHeader
+          mkdir -p ~/theos/sdks/iPhoneOS16.5.sdk/usr/include/YouTubeHeader
+          cp -r /tmp/YouTubeHeader/*.h ~/theos/sdks/iPhoneOS16.5.sdk/usr/include/YouTubeHeader/
+          rm -rf /tmp/YouTubeHeader
 
       - name: Build Tweak
         run: |
@@ -33,10 +41,6 @@ jobs:
           export THEOS=~/theos
           make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless ARCHS=arm64
           find .theos/obj/ -name "*.dylib" -exec cp {} ../YourTweak.dylib \;
-          if [ -d "layout/Library/Application Support" ]; then
-            mkdir -p ../TweakResources
-            cp -r "layout/Library/Application Support/"* ../TweakResources/
-          fi
           cd ..
 
       - name: Install Azule
@@ -48,11 +52,7 @@ jobs:
       - name: Download and Inject
         run: |
           curl -L "${{ github.event.inputs.ipa_url }}" -o YouTube.ipa
-          if [ -d "TweakResources" ]; then
-            azule -i YouTube.ipa -f YourTweak.dylib -r TweakResources -o output/ -e
-          else
-            azule -i YouTube.ipa -f YourTweak.dylib -o output/ -e
-          fi
+          azule -i YouTube.ipa -f YourTweak.dylib -o output/ -e
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
