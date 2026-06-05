@@ -16,23 +16,27 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Theos and SDK
+      - name: Set up Theos and SDKs
         run: |
+          # 1. تحميل Theos مباشرة
           git clone --recursive https://github.com/theos/theos.git ~/theos
-          mkdir -p ~/theos/sdks
-          # تحميل بديل ومباشر للـ SDK لضمان عدم التلف
-          curl -L -o iPhoneOS16.5.sdk.tar.xz https://github.com/theos/sdks/raw/master/iPhoneOS16.5.sdk.tar.xz
-          tar -xf iPhoneOS16.5.sdk.tar.xz -C ~/theos/sdks/
           echo "THEOS=~/theos" >> $GITHUB_ENV
+          
+          # 2. تحميل مجلد الـ SDKs بالكامل لتجنب أخطاء فك الضغط والروابط المكسورة
+          rm -rf ~/theos/sdks
+          git clone https://github.com/theos/sdks.git ~/theos/sdks
 
       - name: Build Tweak
         run: |
           git clone https://github.com/PoomSmart/YouChooseQuality.git BuildTweak
           cd BuildTweak
-          # إضافة مسار THEOS للبيئة الحالية
           export THEOS=~/theos
           make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless ARCHS=arm64
-          cp .theos/obj/debug/YouChooseQuality.dylib ../YourTweak.dylib
+          find .theos/obj/ -name "*.dylib" -exec cp {} ../YourTweak.dylib \;
+          if [ -d "layout/Library/Application Support" ]; then
+            mkdir -p ../TweakResources
+            cp -r "layout/Library/Application Support/"* ../TweakResources/
+          fi
           cd ..
 
       - name: Install Azule
@@ -44,7 +48,11 @@ jobs:
       - name: Download and Inject
         run: |
           curl -L "${{ github.event.inputs.ipa_url }}" -o YouTube.ipa
-          azule -i YouTube.ipa -f YourTweak.dylib -o output/ -e
+          if [ -d "TweakResources" ]; then
+            azule -i YouTube.ipa -f YourTweak.dylib -r TweakResources -o output/ -e
+          else
+            azule -i YouTube.ipa -f YourTweak.dylib -o output/ -e
+          fi
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
