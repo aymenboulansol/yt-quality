@@ -18,9 +18,11 @@ jobs:
 
       - name: Set up Theos and SDK
         run: |
+          # تحميل بيئة Theos
           git clone --recursive https://github.com/theos/theos.git ~/theos
           echo "THEOS=~/theos" >> $GITHUB_ENV
           
+          # تحميل الـ SDK النظيف
           mkdir -p ~/theos/sdks
           git clone --depth 1 https://github.com/theos/sdks.git /tmp/sdks
           cp -r /tmp/sdks/iPhoneOS16.5.sdk ~/theos/sdks/
@@ -28,10 +30,10 @@ jobs:
 
       - name: Install YouTube Headers
         run: |
-          # تحميل ملفات الـ Headers المطلوبة للأداة لضمان نجاح الـ Build
+          # تحميل الـ Headers ووضعها في مجلد include الخاص بـ Theos ليتعرف عليها المترجم فوراً
           git clone https://github.com/PoomSmart/YouTubeHeader.git /tmp/YouTubeHeader
-          mkdir -p ~/theos/sdks/iPhoneOS16.5.sdk/usr/include/YouTubeHeader
-          cp -r /tmp/YouTubeHeader/*.h ~/theos/sdks/iPhoneOS16.5.sdk/usr/include/YouTubeHeader/
+          mkdir -p ~/theos/include/YouTubeHeader
+          cp -r /tmp/YouTubeHeader/*.h ~/theos/include/YouTubeHeader/
           rm -rf /tmp/YouTubeHeader
 
       - name: Build Tweak
