@@ -6,58 +6,48 @@ on:
       ipa_url:
         description: 'Direct URL to YouTube IPA'
         required: true
-        default: 'https://example.com/youtube.ipa'
+        default: 'https://github.com/theduckotech/YouTube-Decrypted/releases/download/v19.11.3/YouTube_19.11.3_Decrypted.ipa'
 
 jobs:
   build:
     runs-on: macos-latest
 
     steps:
-      - name: Checkout Your Repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Theos Environment
+      - name: Set up Theos and SDK
         run: |
           git clone --recursive https://github.com/theos/theos.git ~/theos
-          echo "THEOS=~/theos" >> $GITHUB_ENV
-          
           mkdir -p ~/theos/sdks
-          curl -LO https://github.com/theos/sdks/raw/master/iPhoneOS16.5.sdk.tar.xz
+          # تحميل بديل ومباشر للـ SDK لضمان عدم التلف
+          curl -L -o iPhoneOS16.5.sdk.tar.xz https://github.com/theos/sdks/raw/master/iPhoneOS16.5.sdk.tar.xz
           tar -xf iPhoneOS16.5.sdk.tar.xz -C ~/theos/sdks/
-          rm iPhoneOS16.5.sdk.tar.xz
+          echo "THEOS=~/theos" >> $GITHUB_ENV
 
-      - name: Clone and Build YouChooseQuality Tweak
+      - name: Build Tweak
         run: |
           git clone https://github.com/PoomSmart/YouChooseQuality.git BuildTweak
           cd BuildTweak
+          # إضافة مسار THEOS للبيئة الحالية
+          export THEOS=~/theos
           make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless ARCHS=arm64
-          find .theos/obj/ -name "*.dylib" -exec cp {} ../YourTweak.dylib \;
-          if [ -d "layout/Library/Application Support" ]; then
-            mkdir -p ../TweakResources
-            cp -r "layout/Library/Application Support/"* ../TweakResources/
-          fi
+          cp .theos/obj/debug/YouChooseQuality.dylib ../YourTweak.dylib
           cd ..
 
-      - name: Install Injection Tools (Azule)
+      - name: Install Azule
         run: |
           brew install dpkg ldid
           git clone https://github.com/Al4ise/Azule ~/Azule
           sudo ln -sf ~/Azule/azule /usr/local/bin/azule
 
-      - name: Download YouTube IPA
+      - name: Download and Inject
         run: |
           curl -L "${{ github.event.inputs.ipa_url }}" -o YouTube.ipa
+          azule -i YouTube.ipa -f YourTweak.dylib -o output/ -e
 
-      - name: Inject Tweak into YouTube
-        run: |
-          if [ -d "TweakResources" ]; then
-            azule -i YouTube.ipa -f YourTweak.dylib -r TweakResources -o output/ -e
-          else
-            azule -i YouTube.ipa -f YourTweak.dylib -o output/ -e
-          fi
-
-      - name: Upload Finished IPA
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: YouTube-YouChooseQuality
+          name: YouTube-Modified
           path: output/*.ipa
