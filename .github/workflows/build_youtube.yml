@@ -4,26 +4,32 @@ on:
   workflow_dispatch:
     inputs:
       ipa_url:
-        description: 'Direct URL to a VALID YouTube IPA'
+        description: 'Direct URL to YouTube IPA'
         required: true
-        # تأكد من أن هذا الرابط يعمل فعلياً، أو استبدله برابط آخر موثوق
         default: 'https://github.com/theduckotech/YouTube-Decrypted/releases/download/v19.11.3/YouTube_19.11.3_Decrypted.ipa'
 
 jobs:
   build:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Install Dependencies
-        run: brew install ldid dpkg
+      - name: Install System Dependencies
+        run: |
+          brew install ldid dpkg
 
-      - name: Setup Theos
+      - name: Set up Theos and SDK
         run: |
           git clone --recursive https://github.com/theos/theos.git ~/theos
+          echo "THEOS=~/theos" >> $GITHUB_ENV
           mkdir -p ~/theos/sdks
           git clone --depth 1 https://github.com/theos/sdks.git /tmp/sdks
           cp -r /tmp/sdks/iPhoneOS16.5.sdk ~/theos/sdks/
+          rm -rf /tmp/sdks
+
+      - name: Install Headers
+        run: |
           git clone --depth 1 https://github.com/PoomSmart/YouTubeHeader.git ~/theos/include/YouTubeHeader
           git clone --depth 1 https://github.com/PoomSmart/PSHeader.git ~/theos/include/PSHeader
 
@@ -33,14 +39,18 @@ jobs:
           cd BuildTweak
           export THEOS=~/theos
           make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless ARCHS=arm64
-          # البحث عن ملف dylib الناتج في أي مسار فرعي
+          # التأكد من نسخ ملف dylib الناتج إلى مسار واضح
           find .theos/obj -name "*.dylib" -exec cp {} ../YourTweak.dylib \;
+          cd ..
 
-      - name: Inject with Azule
+      - name: Install Azule
         run: |
           git clone https://github.com/Al4ise/Azule ~/Azule
           sudo ln -sf ~/Azule/azule /usr/local/bin/azule
-          curl -L -f "${{ github.event.inputs.ipa_url }}" -o YouTube.ipa
+
+      - name: Download and Inject
+        run: |
+          curl -L "${{ github.event.inputs.ipa_url }}" -o YouTube.ipa
           mkdir -p output
           azule -i YouTube.ipa -o output -f YourTweak.dylib
 
