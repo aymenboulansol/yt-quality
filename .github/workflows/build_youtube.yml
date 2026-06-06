@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       ipa_url:
-        description: 'https://github.com/Mark02-2012/YTPlusM/releases/download/5.2.1_21.22.4(86)/YTPlusM_21.22.4_5.2.1.ipa'
+        description: 'Direct URL to a VALID YouTube IPA'
         required: true
         default: ''
 
@@ -19,6 +19,11 @@ jobs:
           brew install ldid dpkg
           echo "/opt/homebrew/bin" >> $GITHUB_PATH
 
+      # ✅ FIX: Inject GitHub token into all git clone calls
+      - name: Configure Git Auth
+        run: |
+          git config --global url."https://x-access-token:${{ github.token }}@github.com/".insteadOf "https://github.com/"
+
       - name: Setup Theos
         run: |
           git clone --recursive https://github.com/theos/theos "$HOME/theos"
@@ -31,7 +36,7 @@ jobs:
 
       - name: Build Tweak
         run: |
-          git clone https://github.com/YOUR_USERNAME/YOUR_TWEAK_REPO BuildTweak
+          cp -r . BuildTweak   # if your tweak is in the same repo
           cd BuildTweak
           make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless ARCHS=arm64
           mkdir -p extracted
