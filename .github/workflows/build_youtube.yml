@@ -40,14 +40,21 @@ jobs:
           make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless ARCHS=arm64
           mkdir -p extracted
           dpkg-deb -x packages/*.deb extracted/
-          find extracted/ -name "*.dylib" -exec cp {} ../YouChooseQuality.dylib \;
+          find extracted/ -name "*.dylib" -exec cp {} $GITHUB_WORKSPACE/YouChooseQuality.dylib \;
+
+      - name: Verify Dylib Exists
+        run: |
+          echo "Files in workspace:"
+          ls -la $GITHUB_WORKSPACE/
+          echo "Dylib check:"
+          ls -lh $GITHUB_WORKSPACE/YouChooseQuality.dylib
 
       - name: Inject with Azule
         run: |
           git clone https://github.com/Al4ise/Azule "$HOME/Azule"
           curl -L -f "${{ github.event.inputs.ipa_url }}" -o YouTube.ipa
           mkdir -p output
-          bash "$HOME/Azule/azule" -n YouTube -i YouTube.ipa -o output -f YouChooseQuality.dylib
+          bash "$HOME/Azule/azule" -n YouTube -i YouTube.ipa -o output -f "$GITHUB_WORKSPACE/YouChooseQuality.dylib"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
