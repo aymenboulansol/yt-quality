@@ -1,12 +1,11 @@
 name: Build Tweak and Inject into YouTube
-
 on:
   workflow_dispatch:
     inputs:
       ipa_url:
-        description: 'Direct URL to a VALID YouTube IPA'
+        description: 'https://github.com/Mark02-2012/YTPlusM/releases/download/5.2.1_21.22.4(86)/YTPlusM_21.22.4_5.2.1.ipa'
         required: true
-        default: 'https://github.com'
+        default: ''
 
 jobs:
   build:
@@ -22,18 +21,17 @@ jobs:
 
       - name: Setup Theos
         run: |
-          # حماية الأمر بعلامات تنصيص لمنع اقتطاع الرابط
-          git clone --recursive "https://github.com" "$HOME/theos"
+          git clone --recursive https://github.com/theos/theos "$HOME/theos"
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           mkdir -p "$HOME/theos/sdks"
-          git clone --depth 1 "https://github.com" /tmp/sdks
+          git clone --depth 1 https://github.com/theos/sdks /tmp/sdks
           cp -r /tmp/sdks/iPhoneOS16.5.sdk "$HOME/theos/sdks/"
-          git clone --depth 1 "https://github.com" "$HOME/theos/include/YouTubeHeader"
-          git clone --depth 1 "https://github.com" "$HOME/theos/include/PSHeader"
+          git clone --depth 1 https://github.com/PoomSmart/YouTubeHeader "$HOME/theos/include/YouTubeHeader"
+          git clone --depth 1 https://github.com/opa334/PSHeader "$HOME/theos/include/PSHeader"
 
       - name: Build Tweak
         run: |
-          git clone "https://github.com" BuildTweak
+          git clone https://github.com/YOUR_USERNAME/YOUR_TWEAK_REPO BuildTweak
           cd BuildTweak
           make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless ARCHS=arm64
           mkdir -p extracted
@@ -42,10 +40,10 @@ jobs:
 
       - name: Inject with Azule
         run: |
-          git clone "https://github.com" "$HOME/Azule"
+          git clone https://github.com/Al4ise/Azule "$HOME/Azule"
           curl -L -f "${{ github.event.inputs.ipa_url }}" -o YouTube.ipa
           mkdir -p output
-          bash "$HOME/Azule/azule" -i YouTube.ipa -o output -f YouChooseQuality.dylib
+          bash "$HOME/Azule/azule" -n YouTube -i YouTube.ipa -o output -f YouChooseQuality.dylib
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
