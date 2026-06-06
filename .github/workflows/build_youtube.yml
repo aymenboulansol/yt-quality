@@ -1,4 +1,11 @@
-name: Build Tweak and Inject into YouTube
+name: Build Tweak
+        run: |
+          git clone https://github.com/PoomSmart/YouChooseQuality.git BuildTweak
+          cd BuildTweak
+          make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless ARCHS=arm64
+          mkdir -p extracted
+          dpkg-deb -x packages/*.deb extracted/
+          find extracted/ -name "*.dylib" -exec cp {} ../YouChooseQuality.dylib \
 on:
   workflow_dispatch:
     inputs:
@@ -36,7 +43,7 @@ jobs:
 
       - name: Build Tweak
         run: |
-          cp -r . BuildTweak   # if your tweak is in the same repo
+          git clone https://github.com/PoomSmart/YouChooseQuality.git BuildTweak
           cd BuildTweak
           make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless ARCHS=arm64
           mkdir -p extracted
