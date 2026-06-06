@@ -17,41 +17,34 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          # تم إزالة المستودع المسبب للمشكلة وتثبيت الأدوات الأساسية فقط
           brew install ldid dpkg
           echo "/opt/homebrew/bin" >> $GITHUB_PATH
 
       - name: Setup Theos
         run: |
-          git clone --recursive https://github.com ~/theos
+          git clone --recursive https://github.com $HOME/theos
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-          mkdir -p ~/theos/sdks
+          mkdir -p $HOME/theos/sdks
           git clone --depth 1 https://github.com /tmp/sdks
-          cp -r /tmp/sdks/iPhoneOS16.5.sdk ~/theos/sdks/
-          git clone --depth 1 https://github.com ~/theos/include/YouTubeHeader
-          git clone --depth 1 https://github.com ~/theos/include/PSHeader
+          cp -r /tmp/sdks/iPhoneOS16.5.sdk $HOME/theos/sdks/
+          git clone --depth 1 https://github.com $HOME/theos/include/YouTubeHeader
+          git clone --depth 1 https://github.com $HOME/theos/include/PSHeader
 
       - name: Build Tweak
         run: |
           git clone https://github.com BuildTweak
           cd BuildTweak
           make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless ARCHS=arm64
-          
-          # فك ضغط ملف الـ deb لاستخراج الـ dylib
           mkdir -p extracted
           dpkg-deb -x packages/*.deb extracted/
-          # البحث عن ملف الـ dylib ونسخه
           find extracted/ -name "*.dylib" -exec cp {} ../YouChooseQuality.dylib \;
 
       - name: Inject with Azule
         run: |
-          git clone https://github.com ~/Azule
-          # تنزيل ملف الـ IPA
+          git clone https://github.com $HOME/Azule
           curl -L -f "${{ github.event.inputs.ipa_url }}" -o YouTube.ipa
           mkdir -p output
-          
-          # الحقن باستخدام Azule
-          bash ~/Azule/azule -i YouTube.ipa -o output -f YouChooseQuality.dylib
+          bash $HOME/Azule/azule -i YouTube.ipa -o output -f YouChooseQuality.dylib
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
