@@ -1,11 +1,4 @@
-name: Build Tweak
-        run: |
-          git clone https://github.com/PoomSmart/YouChooseQuality.git BuildTweak
-          cd BuildTweak
-          make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless ARCHS=arm64
-          mkdir -p extracted
-          dpkg-deb -x packages/*.deb extracted/
-          find extracted/ -name "*.dylib" -exec cp {} ../YouChooseQuality.dylib \
+name: Build Tweak and Inject into YouTube
 on:
   workflow_dispatch:
     inputs:
@@ -26,7 +19,6 @@ jobs:
           brew install ldid dpkg
           echo "/opt/homebrew/bin" >> $GITHUB_PATH
 
-      # ✅ FIX: Inject GitHub token into all git clone calls
       - name: Configure Git Auth
         run: |
           git config --global url."https://x-access-token:${{ github.token }}@github.com/".insteadOf "https://github.com/"
@@ -39,7 +31,6 @@ jobs:
           git clone --depth 1 https://github.com/theos/sdks /tmp/sdks
           cp -r /tmp/sdks/iPhoneOS16.5.sdk "$HOME/theos/sdks/"
           git clone --depth 1 https://github.com/PoomSmart/YouTubeHeader "$HOME/theos/include/YouTubeHeader"
-    
 
       - name: Build Tweak
         run: |
