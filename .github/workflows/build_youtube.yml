@@ -6,44 +6,52 @@ on:
       ipa_url:
         description: 'Direct URL to a VALID YouTube IPA'
         required: true
-        default: 'https://github.com/theduckotech/YouTube-Decrypted/releases/download/v19.11.3/YouTube_19.11.3_Decrypted.ipa'
+        # تم تحديث الرابط حسب طلبك
+        default: 'https://github.com/Mark02-2012/YTPlusM/releases/download/5.2.1_21.22.4(86)/YTPlusM_21.22.4_5.2.1.ipa'
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-14
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Install Dependencies
-        run: brew install ldid dpkg
+        run: |
+          brew install ldid dpkg cross-launcher/tap/lsw
+          echo "/opt/homebrew/bin" >> $GITHUB_PATH
 
       - name: Setup Theos
         run: |
-          git clone --recursive https://github.com/theos/theos.git ~/theos
-          echo "THEOS=~/theos" >> $GITHUB_ENV
+          git clone --recursive https://github.com ~/theos
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           mkdir -p ~/theos/sdks
-          git clone --depth 1 https://github.com/theos/sdks.git /tmp/sdks
+          git clone --depth 1 https://github.com /tmp/sdks
           cp -r /tmp/sdks/iPhoneOS16.5.sdk ~/theos/sdks/
-          git clone --depth 1 https://github.com/PoomSmart/YouTubeHeader.git ~/theos/include/YouTubeHeader
-          git clone --depth 1 https://github.com/PoomSmart/PSHeader.git ~/theos/include/PSHeader
+          git clone --depth 1 https://github.com ~/theos/include/YouTubeHeader
+          git clone --depth 1 https://github.com ~/theos/include/PSHeader
 
       - name: Build Tweak
         run: |
-          git clone https://github.com/PoomSmart/YouChooseQuality.git BuildTweak
+          git clone https://github.com BuildTweak
           cd BuildTweak
-          export THEOS=~/theos
           make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless ARCHS=arm64
-          # البحث عن ملف dylib في أي مكان ونسخه للمسار المطلوب
-          find . -name "*.dylib" -exec cp {} ../YourTweak.dylib \;
+          
+          # فك ضغط ملف الـ deb لاستخراج الـ dylib
+          mkdir -p extracted
+          dpkg-deb -x packages/*.deb extracted/
+          # البحث عن ملف الـ dylib ونسخه
+          find extracted/ -name "*.dylib" -exec cp {} ../YouChooseQuality.dylib \;
 
       - name: Inject with Azule
         run: |
-          git clone https://github.com/Al4ise/Azule ~/Azule
-          sudo ln -sf ~/Azule/azule /usr/local/bin/azule
+          git clone https://github.com ~/Azule
+          # تنزيل ملف الـ IPA الجديد
           curl -L -f "${{ github.event.inputs.ipa_url }}" -o YouTube.ipa
           mkdir -p output
-          azule -i YouTube.ipa -o output -f YourTweak.dylib
+          
+          # الحقن باستخدام Azule
+          bash ~/Azule/azule -i YouTube.ipa -o output -f YouChooseQuality.dylib
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
