@@ -31,6 +31,7 @@ jobs:
           git clone --depth 1 https://github.com/theos/sdks /tmp/sdks
           cp -r /tmp/sdks/iPhoneOS16.5.sdk "$HOME/theos/sdks/"
           git clone --depth 1 https://github.com/PoomSmart/YouTubeHeader "$HOME/theos/include/YouTubeHeader"
+          git clone --depth 1 https://github.com/PoomSmart/PSHeader "$HOME/theos/include/PSHeader"
 
       - name: Build Tweak
         run: |
